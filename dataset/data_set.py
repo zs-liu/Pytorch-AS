@@ -7,7 +7,7 @@ from dataset import DataTaker
 
 class InsuranceAnswerDataset(Dataset):
 
-    def __init__(self, data_type='train', dataset_size=100, negative_size=10):
+    def __init__(self, data_type='train', dataset_size=100, negative_size=10, full_flag=False, full_size=0):
         """
         :param data_type: 'train', 'valid' or 'test'
         :param dataset_size: relate to the dataset size, but not equivalent
@@ -15,8 +15,10 @@ class InsuranceAnswerDataset(Dataset):
         """
         self.data_list = []
         self.dataset_size = dataset_size
-        self.negative_size = min(negative_size, self.dataset_size // 5)
-        dt = DataTaker(dataset_size=self.dataset_size)
+        self.negative_size = negative_size
+        if full_flag:
+            self.negative_size = full_size - 10
+        dt = DataTaker(dataset_size=self.dataset_size, full_flag=full_flag, full_size=full_size)
         if data_type == 'train':
             self.q_list = dt.read_train()
         elif data_type == 'test':

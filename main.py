@@ -10,10 +10,10 @@ from tools import Trainer, Evaluator
 
 def main():
     batch_size = 256
-    dataset_size = 500
+    dataset_size = 1500
     learning_rate = 0.001
     weight_decay = 1e-4
-    epochs = 10
+    epochs = 1
     show_frq = 20
     negative_size = 40
     negative_expand = 2
@@ -22,8 +22,10 @@ def main():
     dm = DataEmbedding()
 
     dataset = InsuranceAnswerDataset(dataset_size=dataset_size, negative_size=negative_size, data_type='train')
-    valid_dataset = InsuranceAnswerDataset(dataset_size=dataset_size, negative_size=dataset_size - negative_size, data_type='valid')
-    test_dataset = InsuranceAnswerDataset(dataset_size=dataset_size, negative_size=dataset_size - negative_size, data_type='test')
+    valid_dataset = InsuranceAnswerDataset(dataset_size=dataset_size, negative_size=dataset_size - negative_size,
+                                           data_type='valid')
+    test_dataset = InsuranceAnswerDataset(dataset_size=dataset_size, negative_size=dataset_size - negative_size,
+                                          data_type='test', full_flag=True, full_size=27410)
 
     print(len(dataset))
 
@@ -62,7 +64,8 @@ def main():
             trainer.loader = train_loader
         if epoch <= 1:
             torch.save(model, save_dir + 'model.pkl')
-        elif valid_accu_list[-1] >= valid_accu_list[-2]:
+        elif valid_accu_list[-1] > valid_accu_list[-2] \
+                or (valid_accu_list[-1] == valid_accu_list[-2] and valid_loss_list[-1] < valid_loss_list[-2]):
             torch.save(model, save_dir + 'model.pkl')
         else:
             model = torch.load(save_dir + 'model.pkl')

@@ -1,6 +1,10 @@
+import numpy as np
+
+
 class DataTaker:
 
-    def __init__(self, data_path='/cos_person/data/insuranceQA/V2/', dataset_type='token', dataset_size=100):
+    def __init__(self, data_path='/cos_person/data/insuranceQA/V2/', dataset_type='token', dataset_size=100,
+                 full_flag=False, full_size=0):
         self.data_path = data_path
         self.dataset_type = dataset_type
         self.dataset_size = dataset_size
@@ -14,6 +18,10 @@ class DataTaker:
         self.test_path = self.data_path + 'InsuranceQA.question.anslabel.' + self.dataset_type + '.' \
                          + str(self.dataset_size) + '.pool.solr.test.encoded'
         self.question_max_len = 0
+        self.full_flag = full_flag
+        self.full_size = full_size
+        if self.full_flag and self.full_size == 0:
+            self.full_size = 1500
 
     def read_vocabulary(self):
         path = self.vocabulary_path
@@ -38,7 +46,7 @@ class DataTaker:
         path = self.valid_path
         return self._read_question(path)
 
-    def read_test(self):
+    def read_test(self, full_flag=False, full_size=0):
         path = self.test_path
         return self._read_question(path)
 
@@ -50,8 +58,13 @@ class DataTaker:
             domain, question, p_answer, n_answer = line.strip().split('\t')
             p_answer = p_answer.split(' ')
             p_answer = [int(x) for x in p_answer]
-            n_answer = n_answer.split(' ')
-            n_answer = [int(x) for x in n_answer]
+            if not self.full_flag:
+                n_answer = n_answer.split(' ')
+                n_answer = [int(x) for x in n_answer]
+            else:
+                temp = np.arange(self.full_size) + 1
+                np.random.shuffle(temp)
+                n_answer = list(temp)
             question = question.split(' ')
             question = [int(x[4:]) for x in question]
             for gt in p_answer:

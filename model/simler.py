@@ -2,15 +2,17 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as func
 
+from tools import GesdSim
+
 
 class Simler(nn.Module):
 
     def __init__(self, negative_size, threshold):
         super(Simler, self).__init__()
-        self.similarity = nn.CosineSimilarity(dim=1, eps=1e-8)
+        self.similarity = GesdSim(gamma=1.0, c=1.0)
         self.negative_size = negative_size
         self.threshold = threshold
-        self.pool = nn.MaxPool1d(kernel_size=self.negative_size)
+        self.pool = nn.AdaptiveMaxPool1d(1)
 
     def forward(self, q, pa, na):
         if self.training:

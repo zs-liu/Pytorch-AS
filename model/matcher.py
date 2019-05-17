@@ -15,17 +15,14 @@ class Matcher(nn.Module):
         self.negative_size = negative_size
         self.encoder = Encoder(batch_size=batch_size, embedding_dim=embedding_dim, hidden_dim=hidden_dim,
                                bidirectional=True, vocab_size=vocab_size, dropout=0.5,
-                               mlp_active=False, tagset_size=tagset_size)
+                               mlp_active=True, tagset_size=tagset_size)
         self.simler = Simler(negative_size=self.negative_size, threshold=1.5)
 
     def forward(self, q_batch, pa_batch, na_batch):
         q_out = self._single(q_batch[0], q_batch[1])
-        print('q:', q_out.shape)
         pa_out = self._single(pa_batch[0], pa_batch[1])
-        print('pa:', pa_out.shape)
         pre_na = self.pre_na(na_batch)
         na_out = self._single(pre_na[0], pre_na[1])
-        print('na:', na_out.shape)
         loss, accu = self.simler(q_out, pa_out, na_out)
         return loss, accu
 

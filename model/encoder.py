@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as func
 
+from model.attentioner import SequentialAttention
+
 
 class Encoder(nn.Module):
 
@@ -20,10 +22,13 @@ class Encoder(nn.Module):
         self.lstm = nn.LSTM(input_size=embedding_dim, hidden_size=hidden_dim, num_layers=num_layers,
                             dropout=dropout, bidirectional=bidirectional)
 
+        self.pooling_type = pooling_type
         if pooling_type == 'mean':
             self.pooling = nn.AdaptiveAvgPool1d(output_size=1)
-        else:
+        elif pooling_type == 'max':
             self.pooling = nn.AdaptiveMaxPool1d(output_size=1)
+        else:
+            self.pooling = nn.Identity()
 
         self.mlp_active = mlp_active
 
@@ -36,9 +41,25 @@ class Encoder(nn.Module):
                 self.hidden2tag1 = nn.Linear(in_features=hidden_dim, out_features=hidden_dim // 4)
                 self.hidden2tag2 = nn.Linear(in_features=hidden_dim // 4, out_features=tagset_size)
 
-        self.hidden = self.init_hidden(self.batch_size)
+        self.hidden = self._init_hidden(self.batch_size)
 
-    def init_hidden(self, h0):
+    def forward(self, s, s_length):
+        embed = self.embedding(s)
+        x = embed.view(-1, embed.size(1), self.embedding_dim)
+        self.hidden = self._init_hidden(x.shape[0])
+        x = nn.utils.rnn.pack_padded_sequence(x, s_length, batch_first=True)
+        lstm_out, self.hidden = self.lstm(x, self.hidden)
+        lstm_out, _ = nn.utils.rnn.pad_packed_sequence(lstm_out, batch_first=True)
+        lstm_out = torch.transpose(lstm_out, 1, 2)  # batch_size, hidden_dim (* 2 if bid), len
+        if self.pooling_type == 'raw':
+            return lstm_out
+        tag_vector = self.pooling(lstm_out).squeeze(2)  # batch_size, hidden_dim (* 2 if bid)
+        if self.mlp_active:
+            tag_vector = self.hidden2tag1(func.relu(tag_vector))
+            tag_vector = self.hidden2tag2(self.dropout(func.relu(tag_vector)))
+        return tag_vector
+
+    def _init_hidden(self, h0):
         if self.bidirectional:
             hidden_matrix_1 = torch.zeros(2 * self.num_layers, h0, self.hidden_dim)
             hidden_matrix_2 = torch.zeros(2 * self.num_layers, h0, self.hidden_dim)
@@ -49,17 +70,3 @@ class Encoder(nn.Module):
             hidden_matrix_1 = hidden_matrix_1.cuda()
             hidden_matrix_2 = hidden_matrix_2.cuda()
         return hidden_matrix_1, hidden_matrix_2
-
-    def forward(self, s, s_length):
-        embed = self.embedding(s)
-        x = embed.view(-1, embed.size(1), self.embedding_dim)
-        self.hidden = self.init_hidden(x.shape[0])
-        x = nn.utils.rnn.pack_padded_sequence(x, s_length, batch_first=True)
-        lstm_out, self.hidden = self.lstm(x, self.hidden)
-        lstm_out, _ = nn.utils.rnn.pad_packed_sequence(lstm_out, batch_first=True)
-        lstm_out = torch.transpose(lstm_out, 1, 2)  # batch_size, hidden_dim (* 2 if bid), len
-        tag_vector = self.pooling(lstm_out).squeeze(2)  # batch_size, hidden_dim (* 2 if bid)
-        if self.mlp_active:
-            tag_vector = self.hidden2tag1(func.relu(tag_vector))
-            tag_vector = self.hidden2tag2(self.dropout(func.relu(tag_vector)))
-        return tag_vector
