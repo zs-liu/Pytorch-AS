@@ -13,7 +13,7 @@ def main():
     dataset_size = 1500
     learning_rate = 0.001
     weight_decay = 1e-4
-    epochs = 1
+    epochs = 0
     show_frq = 20
     negative_size = 40
     negative_expand = 2

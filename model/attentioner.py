@@ -32,3 +32,27 @@ class SequentialAttention(nn.Module):
             hidden_matrix_1 = hidden_matrix_1.cuda()
             hidden_matrix_2 = hidden_matrix_2.cuda()
         return hidden_matrix_1, hidden_matrix_2
+
+
+class SelfAttention(nn.Module):
+    def __init__(self, input_dim, hidden_dim):
+        super(SelfAttention, self).__init__()
+        self.linear = nn.Linear(in_features=input_dim, out_features=hidden_dim)
+        self.weight = torch.zeros(hidden_dim)
+        if torch.cuda.is_available():
+            self.weight = self.weight.cuda()
+        self._reset_para()
+
+    def forward(self, vector):
+        vector = vector.permute((0, 2, 1))  # batch size, len, input him
+        alpha = self.linear(vector)  # batch size, len, hidden him
+        alpha = alpha * self.weight  # batch size, len, hidden dim
+        alpha = torch.sum(alpha, dim=2, keepdim=True)  # batch size, len, 1
+        alpha = F.softmax(alpha, dim=1)  # batch size, len, 1
+        vector = vector * alpha  # batch size, len, input him
+        vector = vector.permute((0, 2, 1))   # batch size, input him, len
+        return vector
+
+    def _reset_para(self):
+        stdv = 0.1
+        self.weight.data.uniform_(-stdv, stdv)

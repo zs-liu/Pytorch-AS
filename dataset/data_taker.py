@@ -46,7 +46,7 @@ class DataTaker:
         path = self.valid_path
         return self._read_question(path)
 
-    def read_test(self, full_flag=False, full_size=0):
+    def read_test(self):
         path = self.test_path
         return self._read_question(path)
 
