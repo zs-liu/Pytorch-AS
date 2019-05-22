@@ -21,6 +21,7 @@ class Trainer:
         total_loss = 0
         total_accuracy = 0
         for batch, (data, _) in enumerate(self.loader):
+            self.model.zero_grad()
             self.optimizer.zero_grad()
             loss, accu = self.model(data[0], data[1], data[2:])
             total_loss += loss.item()

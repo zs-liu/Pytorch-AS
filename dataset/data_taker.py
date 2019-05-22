@@ -11,12 +11,12 @@ class DataTaker:
         self.vocabulary_path = self.data_path + 'vocabulary'
         self.answer_path = self.data_path + 'InsuranceQA.label2answer.' + self.dataset_type + '.encoded'
         self.answer_max_len = 0
-        self.train_path = self.data_path + 'InsuranceQA.question.anslabel.' + self.dataset_type + '.' \
-                          + str(self.dataset_size) + '.pool.solr.train.encoded'
-        self.valid_path = self.data_path + 'InsuranceQA.question.anslabel.' + self.dataset_type + '.' \
-                          + str(self.dataset_size) + '.pool.solr.valid.encoded'
-        self.test_path = self.data_path + 'InsuranceQA.question.anslabel.' + self.dataset_type + '.' \
-                         + str(self.dataset_size) + '.pool.solr.test.encoded'
+        self.train_path = self.data_path + 'InsuranceQA.question.anslabel.' + self.dataset_type + '.' + str(
+            self.dataset_size) + '.pool.solr.train.encoded'
+        self.valid_path = self.data_path + 'InsuranceQA.question.anslabel.' + self.dataset_type + '.' + str(
+            self.dataset_size) + '.pool.solr.valid.encoded'
+        self.test_path = self.data_path + 'InsuranceQA.question.anslabel.' + self.dataset_type + '.' + str(
+            self.dataset_size) + '.pool.solr.test.encoded'
         self.question_max_len = 0
         self.full_flag = full_flag
         self.full_size = full_size
@@ -56,23 +56,32 @@ class DataTaker:
         for line in f.readlines():
             line = line.decode()
             domain, question, p_answer, n_answer = line.strip().split('\t')
+            question = question.split(' ')
+            question = [int(x[4:]) for x in question]
             p_answer = p_answer.split(' ')
             p_answer = [int(x) for x in p_answer]
             if not self.full_flag:
                 n_answer = n_answer.split(' ')
-                n_answer = [int(x) for x in n_answer]
+                n_answer = np.array([int(x) for x in n_answer])
+                np.random.shuffle(n_answer)
+                n_answer = list(n_answer)
+                for gt in p_answer:
+                    try:
+                        n_answer.remove(gt)
+                    except ValueError:
+                        pass
             else:
                 temp = np.arange(self.full_size) + 1
+                for gt in p_answer:
+                    try:
+                        np.delete(temp, gt - 1)
+                    except IndexError:
+                        pass
                 np.random.shuffle(temp)
                 n_answer = list(temp)
-            question = question.split(' ')
-            question = [int(x[4:]) for x in question]
-            for gt in p_answer:
-                try:
-                    n_answer.remove(gt)
-                except ValueError:
-                    pass
+                del temp
             line = {'domain': domain, 'question': question, 'ground_truth': p_answer, 'negative_pool': n_answer}
+            del n_answer
             self.question_max_len = max(self.question_max_len, len(question))
             data.append(line)
         f.close()

@@ -1,3 +1,6 @@
+import torch
+
+
 class Evaluator:
 
     def __init__(self, batch_size, model, loader):
@@ -9,10 +12,12 @@ class Evaluator:
         self.model.eval()
         total_loss = 0
         total_accuracy = 0
-        for batch, (data, _) in enumerate(self.loader):
-            loss, accu = self.model(data[0], data[1], data[2:])
-            total_loss += loss
-            total_accuracy += accu
+        with torch.no_grad:
+            for batch, (data, _) in enumerate(self.loader):
+                self.model.zero_grad()
+                loss, accu = self.model(data[0], data[1], data[2:])
+                total_loss += loss
+                total_accuracy += accu
         total_loss /= len(self.loader)
         total_accuracy /= len(self.loader)
         accu_list.append(total_accuracy)

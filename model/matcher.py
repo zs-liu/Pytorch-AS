@@ -7,18 +7,19 @@ from model.simler import Simler
 
 class Matcher(nn.Module):
 
-    def __init__(self, batch_size, embedding_dim, hidden_dim, vocab_size, tagset_size=50, negative_size=10):
+    def __init__(self, embedding_dim, hidden_dim, vocab_size, tagset_size, negative_size):
         super(Matcher, self).__init__()
-        self.batch_size = batch_size
+        self.batch_size = 0
         self.embedding_dim = embedding_dim
         self.hidden_dim = hidden_dim
         self.negative_size = negative_size
-        self.encoder = Encoder(batch_size=batch_size, embedding_dim=embedding_dim, hidden_dim=hidden_dim,
+        self.encoder = Encoder(embedding_dim=embedding_dim, hidden_dim=hidden_dim,
                                bidirectional=True, vocab_size=vocab_size, dropout=0.5,
-                               mlp_active=True, tagset_size=tagset_size)
+                               mlp_active=True, tagset_size=tagset_size, self_attention=True)
         self.simler = Simler(negative_size=self.negative_size, threshold=1.5)
 
     def forward(self, q_batch, pa_batch, na_batch):
+        self.batch_size = q_batch[1].shape[0]
         q_out = self._single(q_batch[0], q_batch[1])
         pa_out = self._single(pa_batch[0], pa_batch[1])
         pre_na = self.pre_na(na_batch)
@@ -54,3 +55,7 @@ class Matcher(nn.Module):
         s_list = torch.LongTensor(s_list)
         length_list = torch.LongTensor(length_list)
         return s_list, length_list
+
+    def reset_negative(self, negative_size):
+        self.negative_size = negative_size
+        self.simler.negative_size = negative_size

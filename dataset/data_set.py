@@ -7,7 +7,7 @@ from dataset import DataTaker
 
 class InsuranceAnswerDataset(Dataset):
 
-    def __init__(self, data_type='train', dataset_size=100, negative_size=10, full_flag=False, full_size=0):
+    def __init__(self, data_type='train', dataset_size=100, negative_size=0, full_flag=False, full_size=0):
         """
         :param data_type: 'train', 'valid' or 'test'
         :param dataset_size: relate to the dataset size, but not equivalent
@@ -17,7 +17,7 @@ class InsuranceAnswerDataset(Dataset):
         self.dataset_size = dataset_size
         self.negative_size = negative_size
         if full_flag:
-            self.negative_size = full_size - 10
+            self.dataset_size = 100
         dt = DataTaker(dataset_size=self.dataset_size, full_flag=full_flag, full_size=full_size)
         if data_type == 'train':
             self.q_list = dt.read_train()
@@ -47,7 +47,9 @@ class InsuranceAnswerDataset(Dataset):
                     nt_list.append([torch.LongTensor(answer), len(self.a_list[nt_id]), key_id])
                 key_id += 1
                 temp_data.append(nt_list)
+                del nt_list
                 self.data_list.append(temp_data)
+                del temp_data
 
     def __getitem__(self, item):
         data = self.data_list[item]
