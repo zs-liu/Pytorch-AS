@@ -12,7 +12,7 @@ class Simler(nn.Module):
         self.similarity = GesdSim(gamma=1.0, c=1.0)
         self.negative_size = negative_size
         self.threshold = threshold
-        self.pool = nn.AdaptiveMaxPool1d(1)
+        self.pool = torch.max
 
     def forward(self, q, pa, na):
         if self.training:
@@ -30,12 +30,11 @@ class Simler(nn.Module):
                 temp = na[i * self.negative_size: (i + 1) * self.negative_size]
                 temp = self.similarity(q[i].repeat(self.negative_size, 1), temp)
                 na_sim[i] = temp.max()
+                del temp
         else:
             q_repeat = q.repeat_interleave(self.negative_size, 0)
-            na_sim = self.similarity(q_repeat, na)
-            na_sim = na_sim.view((1, 1, na_sim.shape[0]))
-            na_sim = self.pool(na_sim)
-            na_sim = na_sim.view((na_sim.shape[2]))
+            na_sim = self.similarity(q_repeat, na).view((-1, self.negative_size))
+            na_sim = torch.max(na_sim, 1)[0]
         if torch.cuda.is_available():
             loss = (torch.ones(q.shape[0]) * self.threshold).cuda() - pa_sim + na_sim
         else:

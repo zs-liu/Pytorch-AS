@@ -9,9 +9,9 @@ class SequentialAttention(nn.Module):
         self.hidden_size = hidden_size // 2
         self.encoder = nn.LSTM(input_size=hidden_size, hidden_size=self.hidden_size, bidirectional=True, num_layers=1)
         if pooling_type == 'mean':
-            self.pooling = nn.AdaptiveAvgPool1d(output_size=1)
+            self.pooling = torch.mean
         elif pooling_type == 'max':
-            self.pooling = nn.AdaptiveMaxPool1d(output_size=1)
+            self.pooling = torch.max
         else:
             self.pooling = nn.Identity()
 

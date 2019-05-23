@@ -28,6 +28,8 @@ class Trainer:
             total_accuracy += accu.item()
             loss.backward()
             self.optimizer.step()
+            del loss
+            del accu
             if self.threshold_decay:
                 self._th_deacy(self.threshold_decay_speed)
             if self.lr_decay:

@@ -12,7 +12,7 @@ class Evaluator:
         self.model.eval()
         total_loss = 0
         total_accuracy = 0
-        with torch.no_grad:
+        with torch.no_grad():
             for batch, (data, _) in enumerate(self.loader):
                 self.model.zero_grad()
                 loss, accu = self.model(data[0], data[1], data[2:])

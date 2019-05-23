@@ -22,15 +22,6 @@ class Encoder(nn.Module):
                             dropout=dropout, bidirectional=bidirectional)
 
         self.pooling_type = pooling_type
-        if pooling_type == 'mean':
-            self.pooling = nn.AdaptiveAvgPool1d(output_size=1)
-        elif pooling_type == 'max':
-            self.pooling = nn.AdaptiveMaxPool1d(output_size=1)
-        else:
-            if not hasattr(nn, 'Identity'):
-                self.pooling = nn.Dropout(p=0)
-            else:
-                self.pooling = nn.Identity()
 
         self.self_attention = self_attention
         if self.self_attention:
@@ -55,16 +46,20 @@ class Encoder(nn.Module):
     def forward(self, s, s_length):
         embed = self.embedding(s)
         x = embed.view(-1, embed.size(1), self.embedding_dim)
-        self.hidden = self._init_hidden(x.shape[0])
+        _hidden = self._init_hidden(x.shape[0])
         x = nn.utils.rnn.pack_padded_sequence(x, s_length, batch_first=True)
-        lstm_out, self.hidden = self.lstm(x, self.hidden)
+        lstm_out, _hidden = self.lstm(x, _hidden)
+        del _hidden
         lstm_out, _ = nn.utils.rnn.pad_packed_sequence(lstm_out, batch_first=True)
         lstm_out = torch.transpose(lstm_out, 1, 2)  # batch size, hidden dim (* 2 if bid), len
         if self.self_attention:
             lstm_out = self.attention(lstm_out)
-        if self.pooling_type == 'raw':
-            return lstm_out
-        tag_vector = self.pooling(lstm_out).squeeze(2)  # batch size, hidden dim (* 2 if bid)
+        if self.pooling_type == 'max':
+            tag_vector = torch.max(lstm_out, 2)[0]  # batch size, hidden dim (* 2 if bid)
+        elif self.pooling_type == 'mean':
+            tag_vector = torch.mean(lstm_out, 2)  # batch size, hidden dim (* 2 if bid)
+        else:
+            return lstm_out 
         if self.mlp_active:
             tag_vector = self.hidden2tag1(func.relu(tag_vector, inplace=True))
             tag_vector = self.hidden2tag2(self.dropout(func.relu(tag_vector)))
